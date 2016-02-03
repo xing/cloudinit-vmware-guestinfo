@@ -1,7 +1,7 @@
 import subprocess
 import os
 import json
-
+import xml.etree.ElementTree as ET
 
 LOG = None
 try:
@@ -36,17 +36,13 @@ class DataSourceVmwareGuestinfo(DS):
             if p1.returncode != 0:
                 LOG.error("vmware-rpctool exited with %d" % p1.returncode)
                 return False
-        except OSError as e:
-            LOG.error(e)
-            return False
-        try:
             LOG.debug("Running %s 'info-get guestinfo.cloudinit.metadata'", rpctool)
-            p1 = subprocess.Popen([rpctool,"info-get guestinfo.cloudinit.metadata"], stdout=subprocess.PIPE, stdin=None)
-            meta, _ = p1.communicate()
-            if p1.returncode not in [0, 1]:
+            p2 = subprocess.Popen([rpctool,"info-get guestinfo.cloudinit.metadata"], stdout=subprocess.PIPE, stdin=None)
+            meta, _ = p2.communicate()
+            if p2.returncode not in [0, 1]:
                 # 0 = success
                 # 1 = Value not found
-                LOG.error("vmware-rpctool exited with %d" % p1.returncode)
+                LOG.error("vmware-rpctool exited with %d" % p2.returncode)
                 return False
             if meta != "":
                 try:
@@ -56,10 +52,35 @@ class DataSourceVmwareGuestinfo(DS):
                     return False
             else:
                 self.metadata = {}
+            LOG.debug("Running %s 'info-get guestinfo.ovfEnv'", rpctool)
+            p3 = subprocess.Popen([rpctool,"info-get guestinfo.ovfEnv"], stdout=subprocess.PIPE, stdin=None)
+            ovf, _ = p3.communicate()
+            if p3.returncode not in [0, 1]:
+                # 0 = success
+                # 1 = Value not found
+                LOG.error("vmware-rpctool exited with %d" % p3.returncode)
+                return False
+            else:
+              try:
+                  self.metadata.update( self._parse_ovf(ovf) )
+              except ValueError as e:
+                  LOG.error("Failed to parse ovf %r: %r", e, ovf)
+                  return False
         except OSError as e:
             LOG.error(e)
             return False
         return True
+
+    def _parse_ovf(ovf):
+        """Parses ovfEnv guestinfo"""
+        if ovf == "":
+          return {}
+        tree = ET.fromstring(ovf)
+        rt = {}
+        for props in tree.findall("{http://schemas.dmtf.org/ovf/environment/1}PropertySection"):
+          for prop in props:
+              rt[ prop.attrib["{http://schemas.dmtf.org/ovf/environment/1}key"] ] = prop.attrib["{http://schemas.dmtf.org/ovf/environment/1}value"]
+        return rt
 
     def _which(self, filename):
         """Finds an executable"""
