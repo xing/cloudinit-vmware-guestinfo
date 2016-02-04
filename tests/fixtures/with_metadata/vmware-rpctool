@@ -1,0 +1,10 @@
+#!/bin/bash
+if [ "$1" == "info-get guestinfo.cloudinit.userdata" ] ; then
+  echo "with metadata"
+  exit 0
+elif [ "$1" == "info-get guestinfo.cloudinit.metadata" ] ; then
+  echo '{"instance-id":"1234"}'
+  exit 0
+fi
+>&2 echo "No Value"
+exit 1

@@ -1,0 +1,7 @@
+#!/bin/bash
+if [ "$1" == "info-get guestinfo.cloudinit.userdata" ] ; then
+  echo "just userdata"
+  exit 0
+fi
+>&2 echo "No Value"
+exit 1

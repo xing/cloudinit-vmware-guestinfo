@@ -1,0 +1,26 @@
+#!/bin/bash
+if [ "$1" == "info-get guestinfo.cloudinit.userdata" ] ; then
+  echo "with ovfEnv"
+  exit 0
+elif [ "$1" == "info-get guestinfo.ovfEnv" ] ; then
+  cat <<OVF
+<Environment xmlns="http://schemas.dmtf.org/ovf/environment/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:oe="http://schemas.dmtf.org/ovf/environment/1" xmlns:ve="http://www.vmware.com/schema/ovfenv" oe:id="" ve:vCenterId="vm-9187">
+   <PlatformSection>
+      <Kind>VMware ESXi</Kind>
+      <Version>6.0.0</Version>
+      <Vendor>VMware, Inc.</Vendor>
+      <Locale>en</Locale>
+   </PlatformSection>
+   <PropertySection>
+      <Property oe:key="instance-id" oe:value="5678"/>
+      <Property oe:key="ip" oe:value="192.168.111.1"/>
+   </PropertySection>
+   <ve:EthernetAdapterSection>
+      <ve:Adapter ve:mac="00:50:56:a1:b1:16" ve:network="ole-black-magic" ve:unitNumber="7"/>
+   </ve:EthernetAdapterSection>
+</Environment>
+OVF
+  exit 0
+fi
+>&2 echo "No Value"
+exit 1

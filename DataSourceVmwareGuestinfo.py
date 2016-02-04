@@ -27,51 +27,56 @@ class DataSourceVmwareGuestinfo(DS):
     def get_data(self):
         rpctool = self._which("vmware-rpctool")
         if rpctool is None:
-            LOG.info("No vmware-rpctool found (PATH is %s)" %  os.environ.get('PATH'))
+            LOG.info("No vmware-rpctool found (PATH is %s)" % self._paths())
             return False
         try:
             LOG.debug("Running %s 'info-get guestinfo.cloudinit.userdata'", rpctool)
             p1 = subprocess.Popen([rpctool,"info-get guestinfo.cloudinit.userdata"], stdout=subprocess.PIPE, stdin=None)
             self.userdata_raw, _ = p1.communicate()
+            if p1.returncode == 1:
+                LOG.info("vmware-rpctool found no guestinfo.cloudinit.userdata")
+                return False
             if p1.returncode != 0:
                 LOG.error("vmware-rpctool exited with %d" % p1.returncode)
                 return False
+
             LOG.debug("Running %s 'info-get guestinfo.cloudinit.metadata'", rpctool)
             p2 = subprocess.Popen([rpctool,"info-get guestinfo.cloudinit.metadata"], stdout=subprocess.PIPE, stdin=None)
             meta, _ = p2.communicate()
-            if p2.returncode not in [0, 1]:
-                # 0 = success
-                # 1 = Value not found
+            if p2.returncode == 0:
+                if meta != "":
+                    try:
+                        self.metadata = json.loads(meta)
+                    except ValueError as e:
+                        LOG.error("Failed to decode json %r: %r", e, meta)
+                        return False
+            elif p2.returncode == 1:
+                LOG.debug("vmware-rpctool found no metadata")
+                self.metadata = {}
+            else:
                 LOG.error("vmware-rpctool exited with %d" % p2.returncode)
                 return False
-            if meta != "":
-                try:
-                    self.metadata = json.loads(meta)
-                except ValueError as e:
-                    LOG.error("Failed to decode json %r: %r", e, meta)
-                    return False
-            else:
-                self.metadata = {}
+
             LOG.debug("Running %s 'info-get guestinfo.ovfEnv'", rpctool)
             p3 = subprocess.Popen([rpctool,"info-get guestinfo.ovfEnv"], stdout=subprocess.PIPE, stdin=None)
             ovf, _ = p3.communicate()
-            if p3.returncode not in [0, 1]:
-                # 0 = success
-                # 1 = Value not found
+            if p3.returncode == 0:
+                try:
+                    self.metadata.update( self._parse_ovf(ovf) )
+                except ValueError as e:
+                    LOG.error("Failed to parse ovf %r: %r", e, ovf)
+                    return False
+            elif p3.returncode == 1:
+                LOG.debug("vmware-rpctool found no ovfEnv")
+            else:
                 LOG.error("vmware-rpctool exited with %d" % p3.returncode)
                 return False
-            else:
-              try:
-                  self.metadata.update( self._parse_ovf(ovf) )
-              except ValueError as e:
-                  LOG.error("Failed to parse ovf %r: %r", e, ovf)
-                  return False
         except OSError as e:
             LOG.error(e)
             return False
         return True
 
-    def _parse_ovf(ovf):
+    def _parse_ovf(self, ovf):
         """Parses ovfEnv guestinfo"""
         if ovf == "":
           return {}
@@ -84,13 +89,20 @@ class DataSourceVmwareGuestinfo(DS):
 
     def _which(self, filename):
         """Finds an executable"""
-        locations = os.environ.get("PATH").split(os.pathsep)
         candidates = []
-        for location in locations:
+        for location in self._paths():
             candidate = os.path.join(location, filename)
             if os.path.isfile(candidate):
                 return candidate
         return None
+
+    def _paths(self):
+        locations = os.environ.get("PATH").split(os.pathsep)
+        if 'path' in self.ds_cfg:
+          locations = self.ds_cfg["path"] + locations
+        return locations
+ 
+
 
 
 def get_datasource_list(depends):
