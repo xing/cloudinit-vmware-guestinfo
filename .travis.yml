@@ -4,10 +4,11 @@ matrix:
   include:
     - python: "2.7"
       env: CLOUDINIT_VERSION=0.6.3
+      install:
+        - pip install pyyaml Cheetah
     - python: "3.2"
       env: CLOUDINIT_VERSION=0.7.5
 install:
-  - pip install pyyaml
   - ./install-cloudinit.sh
 addons:
   apt:
