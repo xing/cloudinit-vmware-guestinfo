@@ -3,13 +3,14 @@ script: nosetests
 matrix:
   include:
     - python: "2.7"
-      env: CLOUDINIT_VERSION=0.6.3
       install:
+        - ./install-cloudinit.sh 0.6.3
         - pip install pyyaml Cheetah
     - python: "3.2"
       env: CLOUDINIT_VERSION=0.7.5
-install:
-  - ./install-cloudinit.sh
+      install:
+        - ./install-cloudinit.sh 0.7.5
+        - pip install -r vendor/cloud-init/requirements.txt
 addons:
   apt:
     packages:
