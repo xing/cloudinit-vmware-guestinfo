@@ -1,49 +1,57 @@
 from DataSourceVmwareGuestinfo import DataSourceVmwareGuestinfo
 from cloudinit import log
 
+if DataSourceVmwareGuestinfo.__init__.func_code.co_argcount == 5:
+  # cloud-init 0.7.*
+  def instance( conf ):
+    return DataSourceVmwareGuestinfo( conf, None, {} )
+else:
+  # cloud-init 0.6.*
+  def instance( conf ):
+    return DataSourceVmwareGuestinfo( conf )
+
 def test_nothing_set():
-    ds = DataSourceVmwareGuestinfo(
+    ds = instance(
             {'datasource':
                 {'VmwareGuestinfo':
                     {'path': ['./tests/fixtures/nothing_set'] }
                     }
-                }
-            , None, {})
+                })
     assert ds.get_data() == False
 
 def test_just_userdata():
-    ds = DataSourceVmwareGuestinfo(
+    ds = instance(
             {'datasource':
                 {'VmwareGuestinfo':
                     {'path': ['./tests/fixtures/just_userdata'] }
                     }
                 }
-            , None, {})
+            )
     assert ds.get_data() == True
     assert ds.userdata_raw == "just userdata\n"
     assert ds.metadata == {}
 
 
 def test_with_metadata():
-    ds = DataSourceVmwareGuestinfo(
+    ds = instance(
             {'datasource':
                 {'VmwareGuestinfo':
                     {'path': ['./tests/fixtures/with_metadata'] }
                     }
                 }
-            , None, {})
+            )
     assert ds.get_data() == True
     assert ds.userdata_raw == "with metadata\n"
     assert ds.metadata == {'instance-id': "1234"}
 
 def test_with_ovfEnv():
-    ds = DataSourceVmwareGuestinfo(
+    ds = instance(
             {'datasource':
                 {'VmwareGuestinfo':
                     {'path': ['./tests/fixtures/with_ovfEnv'] }
                     }
                 }
-            , None, {})
+            )
     assert ds.get_data() == True
     assert ds.userdata_raw == "with ovfEnv\n"
     assert ds.metadata == {'instance-id': "5678", 'ip': '192.168.111.1'}

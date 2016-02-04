@@ -1,0 +1,12 @@
+language: python
+script: nosetests
+matrix:
+  include:
+    - python: "2.7"
+      env: CLOUDINIT_VERSION=0.6.3
+    - python: "3.2"
+      env: CLOUDINIT_VERSION=0.7.5
+addons:
+  apt:
+    packages:
+      - bzr
