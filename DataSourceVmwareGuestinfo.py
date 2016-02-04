@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import subprocess
 import os
 import json
@@ -116,11 +118,11 @@ def main():
     init = stages.Init()
     s = DataSourceVmwareGuestinfo(init.cfg, init.distro, init.paths)
     if s.get_data():
-        print "Found data"
+        print("Found data")
     else:
-        print "Didn't find data"
-    print "userdata_raw: %r" % s.userdata_raw
-    print "metadata: %r" % s.metadata
+        print("Didn't find data")
+    print("userdata_raw: %r" % s.userdata_raw)
+    print("metadata: %r" % s.metadata)
 
 if __name__ == "__main__":
     main()
