@@ -10,6 +10,7 @@ matrix:
       env: CLOUDINIT_VERSION=0.7.5
       install:
         - ./install-cloudinit.sh 0.7.5
+        - pip install --upgrade setuptools
         - pip install -r vendor/cloud-init/requirements.txt
 addons:
   apt:
