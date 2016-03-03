@@ -108,7 +108,7 @@ class DataSourceVmwareGuestinfo(DS):
         if not self.metadata or 'instance-id' not in self.metadata:
             # vmware puts a uuid in the bios
             with open('/sys/class/dmi/id/product_uuid', 'r') as f:
-                return str(f.read())
+                return str(f.read()).rstrip()
         return str(self.metadata['instance-id'])
 
 def get_datasource_list(depends):

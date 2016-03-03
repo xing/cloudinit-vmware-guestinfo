@@ -66,7 +66,7 @@ def test_with_ovfEnv():
     assert ds.metadata == {'instance-id': "5678", 'ip': '192.168.111.1'}
 
 def test_instance_id_from_bios():
-    with patch.object(builtins, 'open', mock_open(read_data='4221369B-38E5-A461-E1F9-5C5EBEC9A328')) as m:
+    with patch.object(builtins, 'open', mock_open(read_data="4221369B-38E5-A461-E1F9-5C5EBEC9A328\n")) as m:
         ds = instance(
                 {'datasource':
                     {'VmwareGuestinfo':
