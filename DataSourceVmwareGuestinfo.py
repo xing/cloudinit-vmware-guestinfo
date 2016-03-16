@@ -39,18 +39,20 @@ class DataSourceVmwareGuestinfo(DS):
         try:
             LOG.debug("Running %s 'info-get guestinfo.cloudinit.userdata'", rpctool)
             p1 = subprocess.Popen([rpctool,"info-get guestinfo.cloudinit.userdata"], stdout=subprocess.PIPE, stdin=None)
-            self.userdata_raw, _ = p1.communicate()
+            ud, _ = p1.communicate()
             if p1.returncode == 1:
                 LOG.info("vmware-rpctool found no guestinfo.cloudinit.userdata")
                 return False
             if p1.returncode != 0:
                 LOG.error("vmware-rpctool exited with %d" % p1.returncode)
                 return False
+            self.userdata_raw = str(ud)
 
             LOG.debug("Running %s 'info-get guestinfo.cloudinit.metadata'", rpctool)
             p2 = subprocess.Popen([rpctool,"info-get guestinfo.cloudinit.metadata"], stdout=subprocess.PIPE, stdin=None)
             meta, _ = p2.communicate()
             if p2.returncode == 0:
+                meta = str(meta)
                 if meta != "":
                     try:
                         self.metadata = json.loads(meta)
@@ -69,7 +71,7 @@ class DataSourceVmwareGuestinfo(DS):
             ovf, _ = p3.communicate()
             if p3.returncode == 0:
                 try:
-                    self.metadata.update( self._parse_ovf(ovf) )
+                    self.metadata.update( self._parse_ovf(str(ovf)) )
                 except ValueError as e:
                     LOG.error("Failed to parse ovf %r: %r", e, ovf)
                     return False

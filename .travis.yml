@@ -9,7 +9,7 @@ matrix:
     - python: "2.7"
       install:
         - ./install-cloudinit.sh 0.7.5
-        - pip install pyyaml Cheetah
+        - pip install pyyaml Cheetah requests
     - python: "3.4"
       install:
         - ./install-cloudinit.sh 1160
