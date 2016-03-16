@@ -11,7 +11,8 @@ else:
 from mock import mock_open, patch, Mock
 
 HAS_DISTRO=True
-if DataSourceVmwareGuestinfo.__init__.func_code.co_argcount == 5:
+initfn=getattr(DataSourceVmwareGuestinfo.__init__,"func_code",DataSourceVmwareGuestinfo.__init__.__code__)
+if initfn.co_argcount == 5:
   # cloud-init 0.7.*
   def instance( conf ):
     return DataSourceVmwareGuestinfo( conf, Mock(), {} )
