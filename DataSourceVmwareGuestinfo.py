@@ -4,6 +4,7 @@ import subprocess
 import os
 import json
 import xml.etree.ElementTree as ET
+import cloudinit.util as util
 
 LOG = None
 try:
@@ -13,11 +14,15 @@ except AttributeError:
     LOG = log
 
 DS = None
+NETWORK_VIA_DISTRO = True
 try:
+    # cloudinit 0.7.*
     from cloudinit import sources
     DS = sources.DataSource
 except ImportError:
+    # cloudinit 0.6.*
     from cloudinit import DataSource
+    NETWORK_VIA_DISTRO = False
     DS = DataSource.DataSource
 
 try:
@@ -76,7 +81,29 @@ class DataSourceVmwareGuestinfo(DS):
         except OSError as e:
             LOG.error(e)
             return False
+        self._network_interfaces_from_metadata()
         return True
+
+    def _network_interfaces_from_metadata(self):
+        """Brings up the network"""
+        if 'network-interfaces' in self.metadata:
+            if NETWORK_VIA_DISTRO:
+                self._network_interfaces_via_distro()
+            else:
+                self._network_interfaces_direct()
+
+    def _network_interfaces_via_distro(self):
+        self.distro.apply_network(self.metadata['network-interfaces'])
+
+    def _network_interfaces_direct(self):
+        util.write_file("/etc/network/interfaces",
+            self.metadata['network-interfaces'])
+        try:
+            (out, err) = util.subp(['ifup', '--all'])
+            if len(out) or len(err):
+                LOG.warn("ifup --all had stderr: %s" % err)
+        except subprocess.CalledProcessError as exc:
+            LOG.warn("ifup --all failed: %s" % (exc.output[1]))
 
     def _parse_ovf(self, ovf):
         """Parses ovfEnv guestinfo"""

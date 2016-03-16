@@ -1,3 +1,4 @@
+import unittest
 from DataSourceVmwareGuestinfo import DataSourceVmwareGuestinfo
 from cloudinit import log
 
@@ -7,14 +8,16 @@ if version_info.major == 2:
 else:
     import builtins
 
-from mock import mock_open, patch
+from mock import mock_open, patch, Mock
 
+HAS_DISTRO=True
 if DataSourceVmwareGuestinfo.__init__.func_code.co_argcount == 5:
   # cloud-init 0.7.*
   def instance( conf ):
-    return DataSourceVmwareGuestinfo( conf, None, {} )
+    return DataSourceVmwareGuestinfo( conf, Mock(), {} )
 else:
   # cloud-init 0.6.*
+  HAS_DISTRO=False
   def instance( conf ):
     return DataSourceVmwareGuestinfo( conf )
 
@@ -74,5 +77,37 @@ def test_instance_id_from_bios():
                         }
                     }
                 )
+        assert ds.get_data() == True
         assert ds.get_instance_id() == '4221369B-38E5-A461-E1F9-5C5EBEC9A328'
     m.assert_called_once_with('/sys/class/dmi/id/product_uuid', 'r')
+
+@unittest.skipIf(HAS_DISTRO,
+                     "not used on cloudinit 0.7.*")
+@patch('cloudinit.util.subp')
+@patch('cloudinit.util.write_file')
+def test_network_interfaces(write_file, subp):
+    subp.return_value = ["",""]
+    ds = instance(
+            {'datasource':
+                {'VmwareGuestinfo':
+                    {'path': ['./tests/fixtures/with_network_interfaces'] }
+                    }
+                }
+            )
+    assert ds.get_data()
+    subp.assert_called_once_with(["ifup","--all"])
+    write_file.assert_called_once_with('/etc/network/interfaces',"auto lo\niface lo inet loopback")
+
+@unittest.skipUnless(HAS_DISTRO,
+                     "not used on cloudinit 0.6.*")
+def test_network_interfaces():
+    ds = instance(
+            {'datasource':
+                {'VmwareGuestinfo':
+                    {'path': ['./tests/fixtures/with_network_interfaces'] }
+                    }
+                }
+            )
+    ds.distro.apply_network = Mock()
+    assert ds.get_data()
+    ds.distro.apply_network.assert_called_once_with("auto lo\niface lo inet loopback")

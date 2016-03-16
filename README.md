@@ -18,6 +18,12 @@ Usage
 
 Set the guestinfo key `cloudinit.userdata` to your raw userdata. Optionally set the key `cloudinit.metadata` to a json object containing the necessary metadata.
 
+Metadata
+---------------
+
+The guestinfo key `cloudinit.metadata` is interpreted as json. If it contains a key `network-interfaces` it is written to `/etc/network/interfaces`.
+
+
 Authors
 ------------------
 
