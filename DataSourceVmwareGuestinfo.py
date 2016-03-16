@@ -31,56 +31,35 @@ except ImportError:
     stages = None
 
 class DataSourceVmwareGuestinfo(DS):
+
+    class CommunicationError(Exception):
+        pass
+
     def get_data(self):
         rpctool = self._which("vmware-rpctool")
         if rpctool is None:
             LOG.info("No vmware-rpctool found (PATH is %s)" % self._paths())
             return False
         try:
-            LOG.debug("Running %s 'info-get guestinfo.cloudinit.userdata'", rpctool)
-            p1 = subprocess.Popen([rpctool,"info-get guestinfo.cloudinit.userdata"], stdout=subprocess.PIPE, stdin=None)
-            ud, _ = p1.communicate()
-            if p1.returncode == 1:
-                LOG.info("vmware-rpctool found no guestinfo.cloudinit.userdata")
+            self.userdata_raw = self._guestinfo("cloudinit.userdata")
+            if self.userdata_raw is None:
                 return False
-            if p1.returncode != 0:
-                LOG.error("vmware-rpctool exited with %d" % p1.returncode)
-                return False
-            self.userdata_raw = str(ud)
-
-            LOG.debug("Running %s 'info-get guestinfo.cloudinit.metadata'", rpctool)
-            p2 = subprocess.Popen([rpctool,"info-get guestinfo.cloudinit.metadata"], stdout=subprocess.PIPE, stdin=None)
-            meta, _ = p2.communicate()
-            if p2.returncode == 0:
-                meta = str(meta)
-                if meta != "":
-                    try:
-                        self.metadata = json.loads(meta)
-                    except ValueError as e:
-                        LOG.error("Failed to decode json %r: %r", e, meta)
-                        return False
-            elif p2.returncode == 1:
-                LOG.debug("vmware-rpctool found no metadata")
-                self.metadata = {}
-            else:
-                LOG.error("vmware-rpctool exited with %d" % p2.returncode)
-                return False
-
-            LOG.debug("Running %s 'info-get guestinfo.ovfEnv'", rpctool)
-            p3 = subprocess.Popen([rpctool,"info-get guestinfo.ovfEnv"], stdout=subprocess.PIPE, stdin=None)
-            ovf, _ = p3.communicate()
-            if p3.returncode == 0:
+            self.metadata = {}
+            meta = self._guestinfo("cloudinit.metadata")
+            if meta is not None:
                 try:
-                    self.metadata.update( self._parse_ovf(str(ovf)) )
+                    self.metadata = json.loads(meta)
+                except ValueError as e:
+                    LOG.error("Failed to decode json %r: %r", e, meta)
+                    return False
+            ovf = self._guestinfo("ovfEnv")
+            if ovf is not None:
+                try:
+                    self.metadata.update( self._parse_ovf(ovf) )
                 except ValueError as e:
                     LOG.error("Failed to parse ovf %r: %r", e, ovf)
                     return False
-            elif p3.returncode == 1:
-                LOG.debug("vmware-rpctool found no ovfEnv")
-            else:
-                LOG.error("vmware-rpctool exited with %d" % p3.returncode)
-                return False
-        except OSError as e:
+        except (CommunicationError, OSError) as e:
             LOG.error(e)
             return False
         self._network_interfaces_from_metadata()
@@ -126,6 +105,21 @@ class DataSourceVmwareGuestinfo(DS):
             if os.path.isfile(candidate):
                 return candidate
         return None
+
+    def _guestinfo(self, key):
+        rpctool = self._which("vmware-rpctool")
+        if rpctool is None:
+            LOG.info("No vmware-rpctool found (PATH is %s)" % self._paths())
+            return False
+        LOG.debug("Running %s 'info-get guestinfo.%s'", rpctool, key)
+        p1 = subprocess.Popen([rpctool,"info-get guestinfo."+key], stdout=subprocess.PIPE, stdin=None)
+        ud, _ = p1.communicate()
+        if p1.returncode == 1:
+            LOG.info("vmware-rpctool found no guestinfo.%s",key)
+            return None
+        if p1.returncode != 0:
+            raise CommunicationError("vmware-rpctool exited with %d" % p1.returncode)
+        return ud.decode(encoding="UTF-8")
 
     def _paths(self):
         locations = os.environ.get("PATH").split(os.pathsep)
