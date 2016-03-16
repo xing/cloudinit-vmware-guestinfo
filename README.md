@@ -1,6 +1,8 @@
 DataSourceVmwareGuestinfo  vmware guestinfo based provider for cloud-init
 ====================
 
+[![Build Status](https://travis-ci.org/xing/cloudinit-vmware-guestinfo.svg?branch=master)](https://travis-ci.org/xing/cloudinit-vmware-guestinfo)
+
 Requirements
 ------------------
 
