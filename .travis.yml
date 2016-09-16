@@ -14,7 +14,3 @@ matrix:
       install:
         - ./install-cloudinit.sh 1160
         - pip install -r vendor/cloud-init/requirements.txt
-addons:
-  apt:
-    packages:
-      - bzr
