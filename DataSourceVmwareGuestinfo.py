@@ -30,6 +30,11 @@ try:
 except ImportError:
     stages = None
 
+try:
+    from cloudinit.net import eni
+except ImportError:
+    eni = None
+
 class DataSourceVmwareGuestinfo(DS):
 
     class CommunicationError(Exception):
@@ -133,6 +138,14 @@ class DataSourceVmwareGuestinfo(DS):
             with open('/sys/class/dmi/id/product_uuid', 'r') as f:
                 return str(f.read()).rstrip()
         return str(self.metadata['instance-id'])
+
+    @property
+    def network_config(self):
+        if 'network-config' in self.metadata:
+            return self.metadata['network-config']
+        if 'network-interfaces' in self.metadata and eni is not None:
+            return eni.convert_eni_data(self.metadata['network-interfaces'])
+        return None
 
 def get_datasource_list(depends):
     """

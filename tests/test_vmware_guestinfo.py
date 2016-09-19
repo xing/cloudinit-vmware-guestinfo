@@ -22,6 +22,13 @@ else:
   def instance( conf ):
     return DataSourceVmwareGuestinfo( conf )
 
+HAS_NETWORK=False
+try:
+    from cloudinit import net
+    HAS_NETWORK=True
+except ImportError:
+    pass
+
 def test_nothing_set():
     ds = instance(
             {'datasource':
@@ -112,3 +119,39 @@ def test_network_interfaces():
     ds.distro.apply_network = Mock()
     assert ds.get_data()
     ds.distro.apply_network.assert_called_once_with("auto lo\niface lo inet loopback")
+
+@unittest.skipUnless(HAS_NETWORK,
+                     "no network support in cloudinit < 0.7.7")
+@patch('cloudinit.util.subp')
+@patch('cloudinit.util.write_file')
+def test_network_config_parses_network_interfaces(write_file, subp):
+    subp.return_value = ["",""]
+    ds = instance(
+            {'datasource':
+                {'VmwareGuestinfo':
+                    {'path': ['./tests/fixtures/with_network_interfaces'] }
+                    }
+                }
+            )
+    assert ds.get_data()
+    print("%r" % ds.network_config)
+    assert ds.network_config
+    assert ds.network_config['version'] == 1
+    assert ds.network_config['config'] == [{'name':'lo','subnets':[{'control':'auto','_orig_eni_name':'lo','type':'loopback'}], 'type':'physical'}]
+
+@patch('cloudinit.util.subp')
+@patch('cloudinit.util.write_file')
+def test_network_config_wins_over_parsed_network_interfaces(write_file, subp):
+    subp.return_value = ["",""]
+    ds = instance(
+            {'datasource':
+                {'VmwareGuestinfo':
+                    {'path': ['./tests/fixtures/with_network_config'] }
+                    }
+                }
+            )
+    assert ds.get_data()
+    print("%r" % ds.network_config)
+    assert ds.network_config
+    assert ds.network_config['version'] == 1
+    assert ds.network_config['config'] == [{'name':'eth1','subnets':[{'control':'auto','type':'dhcp'}], 'type':'physical'}]
