@@ -12,5 +12,9 @@ matrix:
         - pip install pyyaml Cheetah requests
     - python: "3.4"
       install:
-        - ./install-cloudinit.sh 1160
+        - ./install-cloudinit.sh 0.7.7
+        - pip install -r vendor/cloud-init/requirements.txt
+    - python: "3.4"
+      install:
+        - ./install-cloudinit.sh 0.7.8
         - pip install -r vendor/cloud-init/requirements.txt
