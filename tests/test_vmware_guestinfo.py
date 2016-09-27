@@ -167,8 +167,13 @@ def test_network_interfaces_are_ignored_when_network_config_is_available(write_f
                     }
                 }
             )
+    if HAS_DISTRO:
+        ds.distro.apply_network = Mock()
     assert ds.get_data()
     if HAS_NETWORK:
-        assert not ds.distro.apply_network.called
+        if HAS_DISTRO:
+            assert not ds.distro.apply_network.called
+        else:
+            write_file.assert_called_once_with('/etc/network/interfaces',"auto lo\niface lo inet loopback")
     else:
         ds.distro.apply_network.assert_called_once_with("auto lo\niface lo inet loopback")
