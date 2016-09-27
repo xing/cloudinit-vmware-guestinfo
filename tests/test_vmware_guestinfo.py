@@ -155,3 +155,20 @@ def test_network_config_wins_over_parsed_network_interfaces(write_file, subp):
     assert ds.network_config
     assert ds.network_config['version'] == 1
     assert ds.network_config['config'] == [{'name':'eth1','subnets':[{'control':'auto','type':'dhcp'}], 'type':'physical'}]
+
+@patch('cloudinit.util.subp')
+@patch('cloudinit.util.write_file')
+def test_network_interfaces_are_ignored_when_network_config_is_available(write_file, subp):
+    subp.return_value = ["",""]
+    ds = instance(
+            {'datasource':
+                {'VmwareGuestinfo':
+                    {'path': ['./tests/fixtures/with_network_config'] }
+                    }
+                }
+            )
+    assert ds.get_data()
+    if HAS_NETWORK:
+        assert not ds.distro.apply_network.called
+    else:
+        ds.distro.apply_network.assert_called_once_with("auto lo\niface lo inet loopback")

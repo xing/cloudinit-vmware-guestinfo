@@ -72,7 +72,9 @@ class DataSourceVmwareGuestinfo(DS):
 
     def _network_interfaces_from_metadata(self):
         """Brings up the network"""
-        if 'network-interfaces' in self.metadata:
+        if eni is not None and 'network-config' in self.metadata:
+            LOG.info("Skipped setting network-interfaces")
+        elif 'network-interfaces' in self.metadata:
             if NETWORK_VIA_DISTRO:
                 self._network_interfaces_via_distro()
             else:
